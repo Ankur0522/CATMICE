@@ -36,3 +36,36 @@ typedef struct bowl
     pthread_cond_t free_cv;     
     pthread_cond_t cat_cv;     
 } bowl_t;
+
+static const char *progname = "pets";
+
+static void
+dump_bowl(const char *name, pthread_t pet, const char *what,
+          bowl_t *bowl, int my_bowl)
+{
+    int i;
+    struct tm t;
+    time_t tt;
+    
+    tt = time(NULL);
+    assert(tt != (time_t) -1);
+    localtime_r(&tt, &t);
+
+    printf("\n\t\tTIME IS = %02d:%02d:%02d [", t.tm_hour, t.tm_min, t.tm_sec);
+    for (i = 0; i < NO_BOWL; i++) {
+        if (i) printf(":");
+        switch (bowl->status[i]) {
+        case none_eating:
+            printf("-");
+            break;
+        case cat_eating:
+            printf("C");
+            break;
+        case mouse_eating:
+            printf("M");
+            break;
+        }
+    }
+    printf("]\n\n\t %s (id %x) %s EATING FROM BOWL :-  %d\n\n\n\n", name, pet, what, my_bowl);
+}
+
