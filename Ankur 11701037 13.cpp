@@ -68,4 +68,53 @@ dump_bowl(const char *name, pthread_t pet, const char *what,
     }
     printf("]\n\n\t %s (id %x) %s EATING FROM BOWL :-  %d\n\n\n\n", name, pet, what, my_bowl);
 }
+static void* 
+cat(void *arg)
+{
+    bowl_t *bowl = (bowl_t *) arg;
+    int n = C_N_EAT;
+    int my_bowl = -1;
+    int i;
+
+    for (n = C_N_EAT; n > 0; n--) {
+
+        pthread_mutex_lock(&bowl->mutex);
+    
+        pthread_cond_broadcast(&bowl->cat_cv);
+        bowl->cats_waiting++;
+        while (bowl->free_dishes <= 0 || bowl->mice_eating > 0) {
+            pthread_cond_wait(&bowl->free_cv, &bowl->mutex);
+        }
+        bowl->cats_waiting--;
+
+        assert(bowl->free_dishes > 0);
+        bowl->free_dishes--;
+        assert(bowl->cats_eating < NO_CATS);
+        bowl->cats_eating++;
+        
+        for (i = 0; i < NO_BOWL && bowl->status[i] != none_eating; i++) ;
+        my_bowl = i;
+        assert(bowl->status[my_bowl] == none_eating);
+        bowl->status[my_bowl] = cat_eating;
+        dump_bowl("CAT", pthread_self(), "STARTED", bowl, my_bowl);
+        pthread_mutex_unlock(&bowl->mutex);
+
+        sleep(C_EAT);
+        
+        pthread_mutex_lock(&bowl->mutex);
+        assert(bowl->free_dishes < NO_BOWL);
+        bowl->free_dishes++;
+        assert(bowl->cats_eating > 0);
+        bowl->cats_eating--;
+        bowl->status[my_bowl] = none_eating;
+
+        pthread_cond_broadcast(&bowl->free_cv);
+        dump_bowl("CAT", pthread_self(), "FINISHED", bowl, my_bowl);
+        pthread_mutex_unlock(&bowl->mutex);
+
+        sleep(rand() % C_WAIT);
+    }
+
+    return NULL;
+}
 
