@@ -190,4 +190,32 @@ main(int argc, char *argv[])
     pthread_cond_init(&bowl->free_cv, NULL);
     pthread_cond_init(&bowl->cat_cv, NULL);
 
+for (i = 0; i < NO_CATS; i++) {
+        err = pthread_create(&cats[i], NULL, cat, bowl);
+        if (err != 0) {
+            fprintf(stderr, "%s: %s: SORRY ! UNABLE TO CREATE THREAD %d: %d\n",
+                    progname, __func__, i, err);
+        }
+    }
 
+    for (i = 0; i < NO_MICE; i++) {
+        err = pthread_create(&mice[i], NULL, mouse, bowl);
+        if (err != 0) {
+            fprintf(stderr, "%s: %s: SORRY ! UNABLE TO CREATE MOUSE THREAD %d: %d\n",
+                    progname, __func__, i, err);
+        }
+    }
+
+    for (i = 0; i < NO_CATS; i++) {
+        (void) pthread_join(cats[i], NULL);
+    }
+    for (i = 0; i < NO_MICE; i++) {
+        (void) pthread_join(mice[i], NULL);
+    }
+    
+    pthread_mutex_destroy(&bowl->mutex);
+    pthread_cond_destroy(&bowl->free_cv);
+    pthread_cond_destroy(&bowl->cat_cv);
+    
+    return EXIT_SUCCESS;
+}
