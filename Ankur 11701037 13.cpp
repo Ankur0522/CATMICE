@@ -173,5 +173,21 @@ mouse(void *arg)
 
     return NULL;
 }
+int
+main(int argc, char *argv[])
+{
+    int i, err;
+    bowl_t _bowl, *bowl;
+    pthread_t cats[NO_CATS];
+    pthread_t mice[NO_MICE];
+
+    srand(time(NULL)); 
+
+    bowl = &_bowl;
+    memset(bowl, 0, sizeof(bowl_t));
+    bowl->free_dishes = NO_BOWL;
+    pthread_mutex_init(&bowl->mutex, NULL);
+    pthread_cond_init(&bowl->free_cv, NULL);
+    pthread_cond_init(&bowl->cat_cv, NULL);
 
 
