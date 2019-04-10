@@ -117,4 +117,61 @@ cat(void *arg)
 
     return NULL;
 }
+static void* 
+mouse(void *arg)
+{
+    bowl_t *bowl = (bowl_t *) arg;
+    int n = M_N_EAT;
+    struct timespec ts;
+    struct timeval tp;
+    int my_bowl;
+    int i;
+
+    for (n = M_N_EAT; n > 0; n--) {
+
+        pthread_mutex_lock(&bowl->mutex);
+        while (bowl->free_dishes <= 0 || bowl->cats_eating > 0
+               || bowl->cats_waiting > 0) {
+            pthread_cond_wait(&bowl->free_cv, &bowl->mutex);
+        }
+
+        assert(bowl->free_dishes > 0);
+        bowl->free_dishes--;
+        assert(bowl->cats_eating == 0);
+        assert(bowl->mice_eating < NO_MICE);
+        bowl->mice_eating++;
+
+        for (i = 0; i < NO_BOWL && bowl->status[i] != none_eating; i++) ;
+        my_bowl = i;
+        assert(bowl->status[my_bowl] == none_eating);
+        bowl->status[my_bowl] = mouse_eating;
+        dump_bowl("MICE", pthread_self(), "STARTED", bowl, my_bowl);
+        pthread_mutex_unlock(&bowl->mutex);
+        
+        gettimeofday(&tp,NULL);
+        ts.tv_sec  = tp.tv_sec;
+        ts.tv_nsec = tp.tv_usec * 1000;
+        ts.tv_sec += M_EAT;
+        pthread_mutex_lock(&bowl->mutex);
+        pthread_cond_timedwait(&bowl->cat_cv, &bowl->mutex, &ts);
+        pthread_mutex_unlock(&bowl->mutex);
+        
+        pthread_mutex_lock(&bowl->mutex);
+        assert(bowl->free_dishes < NO_BOWL);
+        bowl->free_dishes++;
+        assert(bowl->cats_eating == 0);
+        assert(bowl->mice_eating > 0);
+        bowl->mice_eating--;
+        bowl->status[my_bowl]=none_eating;
+
+        pthread_cond_broadcast(&bowl->free_cv);
+        dump_bowl("MICE", pthread_self(), "FINISHED", bowl, my_bowl);
+        pthread_mutex_unlock(&bowl->mutex);
+        
+        sleep(rand() % M_WAIT);
+    }
+
+    return NULL;
+}
+
 
